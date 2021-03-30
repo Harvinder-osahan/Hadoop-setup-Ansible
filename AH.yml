@@ -1,0 +1,60 @@
+ - hosts: all
+   tasks:
+  
+   - copy :
+       src : /root/AnsibleHadoop/hadoop-1.2.1-1.x86_64.rpm
+       dest : /root/sw/
+  
+   - copy :  
+       src : /root/AnsibleHadoop/jdk-8u171-linux-x64.rpm
+       dest : /root/sw/
+   - yum :
+       name: /root/sw/jdk-8u171-linux-x64.rpm
+       state: present
+
+   - command : "rpm -i /root/sw/hadoop-1.2.1-1.x86_64.rpm --force"
+   
+   - file:
+       path: /hdn
+       state: directory
+
+ - hosts: master
+   tasks:
+   - blockinfile:
+       path: /etc/hadoop/hdfs-site.xml
+       block: |
+         <property>
+         <name>dfs.name.dir</name>
+         <value>/hdn</value>
+         </property>
+       insertafter: <configuration>
+
+   - blockinfile:
+       path: /etc/hadoop/core-site.xml      
+       block: |
+         <property>
+         <name>fs.default.name</name>
+         <value>hdfs://0.0.0.0:5911/</value>
+         </property>
+       insertafter: <configuration>
+       
+   - command: "hadoop-daemon.sh start namenode"
+ 
+ - hosts: slave
+   tasks:
+
+   - ansible.builtin.replace:
+       path: /etc/hadoop/hdfs-site.xml
+       regexp: "<value>/datanode</value>"
+       replace: "<value>/hdn</value>"
+
+   - ansible.builtin.replace:
+       path: /etc/hadoop/core-site.xml
+       regexp: "<value>hdfs://192.168.102.21:5911/</value>"
+       replace: "<value>hdfs://192.168.0.105:5911/</value>"
+   
+   - command: "hadoop-daemon.sh start datanode"
+    
+
+           
+   
